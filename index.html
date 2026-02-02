@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PulsePM</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Product management app for IT teams. Track work, prioritize, and align everyone fast." />
+    <meta name="theme-color" content="#facc15" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PulsePM" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json" />
+    
+    <!-- Favicon (data URI) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0a0a' width='100' height='100' rx='20'/><text x='50' y='65' font-size='45' text-anchor='middle' fill='%23facc15' font-family='system-ui' font-weight='bold'>PP</text></svg>" />
+    
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -195,6 +209,22 @@
             <p>Track work, prioritize, and align everyone fast.</p>
           </div>
           <div class="topbar-actions">
+            <!-- Notification Bell -->
+            <div class="notification-wrapper">
+              <button class="notification-bell" id="notification-bell" title="Notifications">
+                <span class="bell-icon">🔔</span>
+                <span class="notification-badge hidden" id="notification-badge">0</span>
+              </button>
+              <div class="notification-dropdown hidden" id="notification-dropdown">
+                <div class="notification-header">
+                  <h3>Notifications</h3>
+                  <button class="mark-all-read" id="mark-all-read">Mark all read</button>
+                </div>
+                <div class="notification-list" id="notification-list">
+                  <div class="notification-empty">No notifications yet</div>
+                </div>
+              </div>
+            </div>
             <button class="ghost" id="seed-demo">Reset Demo Data</button>
             <button class="primary" data-section="tasks">Create Task</button>
           </div>
@@ -349,6 +379,22 @@
             <div class="field">
               <label for="task-team">Team</label>
               <input id="task-team" type="text" placeholder="Infrastructure" />
+            </div>
+            <div class="field" style="position: relative;">
+              <label>Labels</label>
+              <div class="labels-picker" id="task-labels-picker">
+                <div class="selected-labels" id="task-selected-labels"></div>
+                <button type="button" class="add-label-btn" id="add-label-btn">+ Add Label</button>
+              </div>
+              <div class="labels-dropdown hidden" id="labels-dropdown">
+                <div class="labels-dropdown-header">
+                  <input type="text" id="label-search" placeholder="Search or create label..." />
+                </div>
+                <div class="labels-list" id="labels-list"></div>
+                <div class="labels-dropdown-footer">
+                  <button type="button" class="create-label-btn" id="create-label-btn">+ Create New Label</button>
+                </div>
+              </div>
             </div>
             <div class="field">
               <label for="task-due">Due date</label>
@@ -556,6 +602,39 @@
       </div>
     </div>
 
+    <!-- Task Detail Modal with Comments -->
+    <div class="modal-overlay hidden" id="task-detail-modal">
+      <div class="modal task-detail-modal" style="max-width: 600px;">
+        <div class="modal-header">
+          <h2 id="task-detail-title">Task Details</h2>
+          <p id="task-detail-status">Status</p>
+        </div>
+        <div class="task-detail-content">
+          <input type="hidden" id="task-detail-id" />
+          
+          <!-- Comments Section -->
+          <div class="comments-section">
+            <h3>Comments</h3>
+            <div class="comments-list" id="comments-list">
+              <div class="comments-empty">No comments yet. Be the first to comment!</div>
+            </div>
+            
+            <!-- Add Comment Form -->
+            <div class="add-comment-form">
+              <div class="comment-input-wrapper">
+                <textarea id="comment-input" placeholder="Write a comment... Use @ to mention someone" rows="2"></textarea>
+                <div class="mention-dropdown hidden" id="mention-dropdown"></div>
+              </div>
+              <button class="primary" id="submit-comment">Post Comment</button>
+            </div>
+          </div>
+        </div>
+        <div class="actions" style="margin-top: 16px;">
+          <button class="ghost" id="close-task-detail">Close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Edit Permissions Modal -->
     <div class="modal-overlay hidden" id="edit-permissions-modal">
       <div class="modal" style="max-width: 450px;">
@@ -618,6 +697,40 @@
           <button class="danger-btn" id="confirm-delete">Delete Task</button>
           <button class="ghost" id="cancel-delete">Cancel</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Create Label Modal -->
+    <div class="modal-overlay hidden" id="create-label-modal">
+      <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+          <h2>Create New Label</h2>
+          <p>Labels help categorize and filter tasks</p>
+        </div>
+        <form id="create-label-form">
+          <div class="field">
+            <label for="new-label-name">Label Name</label>
+            <input type="text" id="new-label-name" placeholder="e.g., Bug, Feature, Urgent" required />
+          </div>
+          <div class="field">
+            <label>Color</label>
+            <div class="color-picker" id="label-color-picker">
+              <button type="button" class="color-option selected" data-color="#ef4444" style="background: #ef4444;"></button>
+              <button type="button" class="color-option" data-color="#f97316" style="background: #f97316;"></button>
+              <button type="button" class="color-option" data-color="#facc15" style="background: #facc15;"></button>
+              <button type="button" class="color-option" data-color="#22c55e" style="background: #22c55e;"></button>
+              <button type="button" class="color-option" data-color="#3b82f6" style="background: #3b82f6;"></button>
+              <button type="button" class="color-option" data-color="#8b5cf6" style="background: #8b5cf6;"></button>
+              <button type="button" class="color-option" data-color="#ec4899" style="background: #ec4899;"></button>
+              <button type="button" class="color-option" data-color="#6b7280" style="background: #6b7280;"></button>
+            </div>
+            <input type="hidden" id="new-label-color" value="#ef4444" />
+          </div>
+          <div class="actions" style="margin-top: 24px;">
+            <button type="submit" class="primary">Create Label</button>
+            <button type="button" class="ghost" id="cancel-create-label">Cancel</button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -879,7 +992,7 @@
     </div>
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=20260130c"></script>
-    <script src="app.js?v=20260130c"></script>
+    <script src="config.js?v=20260130d"></script>
+    <script src="app.js?v=20260130d"></script>
   </body>
 </html>

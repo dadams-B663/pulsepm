@@ -29,6 +29,7 @@ let state = {
   todos: [],
   files: [],
   aiSuggestions: [],
+  notifications: [],
 };
 let profiles = [];
 let invites = [];
@@ -175,7 +176,32 @@ async function loadAllData() {
     if (invitesError) throw invitesError;
     invites = invitesData || [];
 
+    // Load notifications for current user (gracefully handle if table doesn't exist)
+    if (currentUser) {
+      const { data: notifData, error: notifError } = await db
+        .from('notifications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (!notifError) {
+        state.notifications = notifData || [];
+      }
+    }
+
+    // Load labels (gracefully handle if table doesn't exist)
+    const { data: labelsData, error: labelsError } = await db
+      .from('labels')
+      .select('*')
+      .order('name', { ascending: true });
+    
+    if (!labelsError) {
+      labels = labelsData || [];
+    }
+
     renderAll();
+    renderNotifications();
   } catch (error) {
     console.error('Error loading data:', error);
     showNotification('Failed to load data. Please refresh.', 'error');
@@ -1260,6 +1286,697 @@ function formatFileSize(bytes) {
 }
 
 // ============================================
+// NOTIFICATION SYSTEM
+// ============================================
+const notificationBell = document.getElementById('notification-bell');
+const notificationDropdown = document.getElementById('notification-dropdown');
+const notificationBadge = document.getElementById('notification-badge');
+const notificationList = document.getElementById('notification-list');
+const markAllReadBtn = document.getElementById('mark-all-read');
+
+// Toggle dropdown
+notificationBell?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  notificationDropdown?.classList.toggle('hidden');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (!notificationDropdown?.contains(e.target) && e.target !== notificationBell) {
+    notificationDropdown?.classList.add('hidden');
+  }
+});
+
+// Load notifications
+async function loadNotifications() {
+  if (!currentUser) return;
+  
+  try {
+    const { data, error } = await db
+      .from('notifications')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    
+    if (!error) {
+      state.notifications = data || [];
+      renderNotifications();
+    }
+  } catch (err) {
+    console.error('Error loading notifications:', err);
+  }
+}
+
+// Render notifications
+function renderNotifications() {
+  if (!notificationList) return;
+  
+  const notifications = state.notifications || [];
+  const unreadCount = notifications.filter(n => !n.read).length;
+  
+  // Update badge
+  if (notificationBadge) {
+    if (unreadCount > 0) {
+      notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+      notificationBadge.classList.remove('hidden');
+    } else {
+      notificationBadge.classList.add('hidden');
+    }
+  }
+  
+  // Render list
+  if (notifications.length === 0) {
+    notificationList.innerHTML = '<div class="notification-empty">No notifications yet</div>';
+    return;
+  }
+  
+  notificationList.innerHTML = notifications.map(notif => {
+    const iconClass = notif.type === 'task_assigned' ? 'task' : 
+                      notif.type === 'comment' ? 'comment' :
+                      notif.type === 'mention' ? 'mention' : 'status';
+    const icon = notif.type === 'task_assigned' ? '📋' :
+                 notif.type === 'comment' ? '💬' :
+                 notif.type === 'mention' ? '@' : '🔄';
+    
+    return `
+      <div class="notification-item ${notif.read ? '' : 'unread'}" data-notif-id="${notif.id}" data-link="${notif.link || ''}">
+        <div class="notification-icon ${iconClass}">${icon}</div>
+        <div class="notification-content">
+          <div class="notification-title">${escapeHtml(notif.title || 'Notification')}</div>
+          <div class="notification-message">${escapeHtml(notif.message || '')}</div>
+          <div class="notification-time">${formatTimeAgo(notif.created_at)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  // Add click handlers
+  notificationList.querySelectorAll('.notification-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const notifId = item.dataset.notifId;
+      const link = item.dataset.link;
+      
+      // Mark as read
+      await markNotificationRead(notifId);
+      
+      // Navigate if link provided
+      if (link) {
+        setActiveSection(link);
+      }
+      
+      notificationDropdown?.classList.add('hidden');
+    });
+  });
+}
+
+// Mark single notification as read
+async function markNotificationRead(notifId) {
+  try {
+    await db.from('notifications').update({ read: true }).eq('id', notifId);
+    const notif = state.notifications.find(n => n.id === notifId);
+    if (notif) notif.read = true;
+    renderNotifications();
+  } catch (err) {
+    console.error('Error marking notification read:', err);
+  }
+}
+
+// Mark all as read
+markAllReadBtn?.addEventListener('click', async () => {
+  if (!currentUser) return;
+  
+  try {
+    await db.from('notifications').update({ read: true }).eq('user_id', currentUser.id).eq('read', false);
+    state.notifications.forEach(n => n.read = true);
+    renderNotifications();
+  } catch (err) {
+    console.error('Error marking all read:', err);
+  }
+});
+
+// Create a notification
+async function createNotification(userId, type, title, message, link = '') {
+  if (!userId) return;
+  
+  try {
+    await db.from('notifications').insert({
+      user_id: userId,
+      type,
+      title,
+      message,
+      link,
+      read: false
+    });
+  } catch (err) {
+    console.error('Error creating notification:', err);
+  }
+}
+
+// Format time ago
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+// ============================================
+// COMMENTS SYSTEM
+// ============================================
+const taskDetailModal = document.getElementById('task-detail-modal');
+const taskDetailId = document.getElementById('task-detail-id');
+const taskDetailTitle = document.getElementById('task-detail-title');
+const taskDetailStatus = document.getElementById('task-detail-status');
+const commentsList = document.getElementById('comments-list');
+const commentInput = document.getElementById('comment-input');
+const submitCommentBtn = document.getElementById('submit-comment');
+const mentionDropdown = document.getElementById('mention-dropdown');
+const closeTaskDetailBtn = document.getElementById('close-task-detail');
+
+let currentTaskComments = [];
+let mentionSearchText = '';
+let mentionStartIndex = -1;
+let selectedMentionIndex = 0;
+
+// Open task detail modal
+function openTaskDetail(taskId) {
+  const task = state.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  
+  taskDetailId.value = taskId;
+  taskDetailTitle.textContent = task.title || 'Task Details';
+  taskDetailStatus.textContent = `Status: ${task.status || 'Not started'}`;
+  
+  loadComments(taskId);
+  taskDetailModal.classList.remove('hidden');
+}
+
+// Close task detail modal
+closeTaskDetailBtn?.addEventListener('click', () => {
+  taskDetailModal?.classList.add('hidden');
+  commentInput.value = '';
+  mentionDropdown?.classList.add('hidden');
+});
+
+taskDetailModal?.addEventListener('click', (e) => {
+  if (e.target === taskDetailModal) {
+    taskDetailModal.classList.add('hidden');
+    commentInput.value = '';
+    mentionDropdown?.classList.add('hidden');
+  }
+});
+
+// Load comments for a task
+async function loadComments(taskId) {
+  try {
+    const { data, error } = await db
+      .from('comments')
+      .select('*')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: true });
+    
+    if (error) {
+      console.log('Comments table may not exist yet');
+      currentTaskComments = [];
+    } else {
+      currentTaskComments = data || [];
+    }
+    renderComments();
+  } catch (err) {
+    console.error('Error loading comments:', err);
+    currentTaskComments = [];
+    renderComments();
+  }
+}
+
+// Render comments
+function renderComments() {
+  if (!commentsList) return;
+  
+  if (currentTaskComments.length === 0) {
+    commentsList.innerHTML = '<div class="comments-empty">No comments yet. Be the first to comment!</div>';
+    return;
+  }
+  
+  commentsList.innerHTML = currentTaskComments.map(comment => {
+    const initials = (comment.user_name || 'U').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const contentHtml = formatCommentWithMentions(comment.content || '');
+    
+    return `
+      <div class="comment-item">
+        <div class="comment-avatar">${initials}</div>
+        <div class="comment-body">
+          <div class="comment-header">
+            <span class="comment-author">${escapeHtml(comment.user_name || 'Unknown')}</span>
+            <span class="comment-time">${formatTimeAgo(comment.created_at)}</span>
+          </div>
+          <div class="comment-text">${contentHtml}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  // Scroll to bottom
+  commentsList.scrollTop = commentsList.scrollHeight;
+}
+
+// Format comment text with highlighted mentions
+function formatCommentWithMentions(text) {
+  // Replace @mentions with highlighted spans
+  return escapeHtml(text).replace(/@(\w+(?:\s+\w+)?)/g, '<span class="mention">@$1</span>');
+}
+
+// Submit comment
+submitCommentBtn?.addEventListener('click', submitComment);
+
+async function submitComment() {
+  const taskId = taskDetailId?.value;
+  const content = commentInput?.value?.trim();
+  
+  if (!taskId || !content) return;
+  if (!canEdit()) return alert("You don't have permission to comment.");
+  
+  try {
+    // Extract mentions
+    const mentionMatches = content.match(/@(\w+(?:\s+\w+)?)/g) || [];
+    const mentionedNames = mentionMatches.map(m => m.substring(1));
+    const mentionedUsers = profiles.filter(p => 
+      mentionedNames.some(name => p.name.toLowerCase().includes(name.toLowerCase()))
+    );
+    const mentionIds = mentionedUsers.map(u => u.id);
+    
+    const comment = {
+      task_id: taskId,
+      user_id: currentUser?.id,
+      user_name: currentProfile?.name || 'Unknown',
+      content,
+      mentions: mentionIds
+    };
+    
+    const { error } = await db.from('comments').insert(comment);
+    
+    if (error) {
+      console.error('Comment insert error:', error);
+      alert('Failed to post comment. Make sure the comments table exists in Supabase.');
+      return;
+    }
+    
+    // Create notifications for mentioned users
+    for (const user of mentionedUsers) {
+      if (user.id !== currentUser?.id) {
+        await createNotification(
+          user.id,
+          'mention',
+          `${currentProfile?.name || 'Someone'} mentioned you`,
+          `In a comment: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+          'tasks'
+        );
+      }
+    }
+    
+    // Clear input and reload
+    commentInput.value = '';
+    mentionDropdown?.classList.add('hidden');
+    await loadComments(taskId);
+    
+  } catch (err) {
+    console.error('Error posting comment:', err);
+    alert('Failed to post comment.');
+  }
+}
+
+// @Mention autocomplete
+commentInput?.addEventListener('input', (e) => {
+  const text = e.target.value;
+  const cursorPos = e.target.selectionStart;
+  
+  // Find @ before cursor
+  const textBeforeCursor = text.substring(0, cursorPos);
+  const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+  
+  if (lastAtIndex !== -1) {
+    const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+    // Check if there's a space after the @mention (meaning it's complete)
+    if (!textAfterAt.includes(' ') || textAfterAt.split(' ').length <= 2) {
+      mentionSearchText = textAfterAt.toLowerCase();
+      mentionStartIndex = lastAtIndex;
+      showMentionDropdown();
+      return;
+    }
+  }
+  
+  mentionDropdown?.classList.add('hidden');
+});
+
+// Show mention dropdown
+function showMentionDropdown() {
+  const filtered = profiles.filter(p => 
+    p.name.toLowerCase().includes(mentionSearchText) ||
+    p.email?.toLowerCase().includes(mentionSearchText)
+  ).slice(0, 5);
+  
+  if (filtered.length === 0) {
+    mentionDropdown?.classList.add('hidden');
+    return;
+  }
+  
+  selectedMentionIndex = 0;
+  
+  mentionDropdown.innerHTML = filtered.map((profile, i) => {
+    const initials = profile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    return `
+      <div class="mention-item ${i === 0 ? 'selected' : ''}" data-user-id="${profile.id}" data-user-name="${escapeHtml(profile.name)}">
+        <div class="mention-item-avatar">${initials}</div>
+        <div>
+          <div class="mention-item-name">${escapeHtml(profile.name)}</div>
+          <div class="mention-item-role">${escapeHtml(profile.role || '')}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  mentionDropdown?.classList.remove('hidden');
+  
+  // Add click handlers
+  mentionDropdown.querySelectorAll('.mention-item').forEach(item => {
+    item.addEventListener('click', () => {
+      insertMention(item.dataset.userName);
+    });
+  });
+}
+
+// Insert mention into textarea
+function insertMention(name) {
+  const text = commentInput.value;
+  const before = text.substring(0, mentionStartIndex);
+  const after = text.substring(commentInput.selectionStart);
+  
+  commentInput.value = before + '@' + name + ' ' + after;
+  commentInput.focus();
+  
+  const newCursorPos = mentionStartIndex + name.length + 2;
+  commentInput.setSelectionRange(newCursorPos, newCursorPos);
+  
+  mentionDropdown?.classList.add('hidden');
+}
+
+// Keyboard navigation for mentions
+commentInput?.addEventListener('keydown', (e) => {
+  if (mentionDropdown?.classList.contains('hidden')) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submitComment();
+    }
+    return;
+  }
+  
+  const items = mentionDropdown.querySelectorAll('.mention-item');
+  
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    selectedMentionIndex = Math.min(selectedMentionIndex + 1, items.length - 1);
+    updateMentionSelection(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    selectedMentionIndex = Math.max(selectedMentionIndex - 1, 0);
+    updateMentionSelection(items);
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault();
+    const selected = items[selectedMentionIndex];
+    if (selected) {
+      insertMention(selected.dataset.userName);
+    }
+  } else if (e.key === 'Escape') {
+    mentionDropdown?.classList.add('hidden');
+  }
+});
+
+function updateMentionSelection(items) {
+  items.forEach((item, i) => {
+    item.classList.toggle('selected', i === selectedMentionIndex);
+  });
+}
+
+// ============================================
+// LABELS SYSTEM
+// ============================================
+let labels = [];
+let selectedLabels = [];
+let selectedLabelColor = '#ef4444';
+
+const labelsDropdown = document.getElementById('labels-dropdown');
+const labelsList = document.getElementById('labels-list');
+const addLabelBtn = document.getElementById('add-label-btn');
+const labelSearchInput = document.getElementById('label-search');
+const createLabelBtn = document.getElementById('create-label-btn');
+const selectedLabelsContainer = document.getElementById('task-selected-labels');
+const createLabelModal = document.getElementById('create-label-modal');
+const createLabelForm = document.getElementById('create-label-form');
+const newLabelNameInput = document.getElementById('new-label-name');
+const newLabelColorInput = document.getElementById('new-label-color');
+const labelColorPicker = document.getElementById('label-color-picker');
+const cancelCreateLabelBtn = document.getElementById('cancel-create-label');
+
+// Load labels
+async function loadLabels() {
+  try {
+    const { data, error } = await db
+      .from('labels')
+      .select('*')
+      .order('name', { ascending: true });
+    
+    if (!error) {
+      labels = data || [];
+    } else {
+      console.log('Labels table may not exist yet');
+      labels = [];
+    }
+  } catch (err) {
+    console.error('Error loading labels:', err);
+    labels = [];
+  }
+}
+
+// Toggle labels dropdown
+addLabelBtn?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  labelsDropdown?.classList.toggle('hidden');
+  if (!labelsDropdown?.classList.contains('hidden')) {
+    loadLabels().then(renderLabelsDropdown);
+    labelSearchInput?.focus();
+  }
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (!labelsDropdown?.contains(e.target) && e.target !== addLabelBtn) {
+    labelsDropdown?.classList.add('hidden');
+  }
+});
+
+// Render labels dropdown
+function renderLabelsDropdown() {
+  if (!labelsList) return;
+  
+  const searchTerm = labelSearchInput?.value?.toLowerCase() || '';
+  const filtered = labels.filter(l => l.name.toLowerCase().includes(searchTerm));
+  
+  if (filtered.length === 0) {
+    labelsList.innerHTML = '<div class="muted" style="padding: 16px; text-align: center;">No labels found</div>';
+    return;
+  }
+  
+  labelsList.innerHTML = filtered.map(label => {
+    const isSelected = selectedLabels.some(l => l.id === label.id);
+    const canDelete = isAdmin() || label.created_by === currentUser?.id;
+    
+    return `
+      <div class="label-option ${isSelected ? 'selected' : ''}" data-label-id="${label.id}">
+        <div class="label-color-dot" style="background: ${label.color || '#6b7280'};"></div>
+        <span class="label-option-name">${escapeHtml(label.name)}</span>
+        ${isSelected ? '<span class="label-option-check">✓</span>' : ''}
+        ${canDelete ? `<button class="label-delete-btn" data-delete-label="${label.id}" title="Delete label">×</button>` : ''}
+      </div>
+    `;
+  }).join('');
+  
+  // Add click handlers
+  labelsList.querySelectorAll('.label-option').forEach(option => {
+    option.addEventListener('click', (e) => {
+      if (e.target.classList.contains('label-delete-btn')) return;
+      const labelId = option.dataset.labelId;
+      toggleLabel(labelId);
+    });
+  });
+  
+  // Delete handlers
+  labelsList.querySelectorAll('.label-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const labelId = btn.dataset.deleteLabel;
+      if (confirm('Delete this label? It will be removed from all tasks.')) {
+        await deleteLabel(labelId);
+      }
+    });
+  });
+}
+
+// Toggle label selection
+function toggleLabel(labelId) {
+  const label = labels.find(l => l.id === labelId);
+  if (!label) return;
+  
+  const existingIndex = selectedLabels.findIndex(l => l.id === labelId);
+  if (existingIndex !== -1) {
+    selectedLabels.splice(existingIndex, 1);
+  } else {
+    selectedLabels.push(label);
+  }
+  
+  renderSelectedLabels();
+  renderLabelsDropdown();
+}
+
+// Render selected labels
+function renderSelectedLabels() {
+  if (!selectedLabelsContainer) return;
+  
+  if (selectedLabels.length === 0) {
+    selectedLabelsContainer.innerHTML = '';
+    return;
+  }
+  
+  selectedLabelsContainer.innerHTML = selectedLabels.map(label => `
+    <span class="label-pill" style="background: ${label.color || '#6b7280'};">
+      ${escapeHtml(label.name)}
+      <span class="remove-label" data-remove-label="${label.id}">×</span>
+    </span>
+  `).join('');
+  
+  // Remove handlers
+  selectedLabelsContainer.querySelectorAll('.remove-label').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const labelId = btn.dataset.removeLabel;
+      selectedLabels = selectedLabels.filter(l => l.id !== labelId);
+      renderSelectedLabels();
+      renderLabelsDropdown();
+    });
+  });
+}
+
+// Search labels
+labelSearchInput?.addEventListener('input', renderLabelsDropdown);
+
+// Open create label modal
+createLabelBtn?.addEventListener('click', () => {
+  labelsDropdown?.classList.add('hidden');
+  createLabelModal?.classList.remove('hidden');
+  newLabelNameInput?.focus();
+  
+  // Pre-fill with search term if any
+  if (labelSearchInput?.value) {
+    newLabelNameInput.value = labelSearchInput.value;
+  }
+});
+
+// Close create label modal
+cancelCreateLabelBtn?.addEventListener('click', () => {
+  createLabelModal?.classList.add('hidden');
+  createLabelForm?.reset();
+});
+
+createLabelModal?.addEventListener('click', (e) => {
+  if (e.target === createLabelModal) {
+    createLabelModal.classList.add('hidden');
+    createLabelForm?.reset();
+  }
+});
+
+// Color picker
+labelColorPicker?.querySelectorAll('.color-option').forEach(option => {
+  option.addEventListener('click', (e) => {
+    e.preventDefault();
+    labelColorPicker.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+    option.classList.add('selected');
+    selectedLabelColor = option.dataset.color;
+    if (newLabelColorInput) newLabelColorInput.value = selectedLabelColor;
+  });
+});
+
+// Create label
+createLabelForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const name = newLabelNameInput?.value?.trim();
+  if (!name) return;
+  
+  try {
+    const { data, error } = await db.from('labels').insert({
+      name,
+      color: selectedLabelColor,
+      created_by: currentUser?.id
+    }).select().single();
+    
+    if (error) {
+      console.error('Error creating label:', error);
+      alert('Failed to create label. Make sure the labels table exists in Supabase.');
+      return;
+    }
+    
+    labels.push(data);
+    selectedLabels.push(data);
+    
+    createLabelModal?.classList.add('hidden');
+    createLabelForm?.reset();
+    renderSelectedLabels();
+    
+    showNotification('Label created!', 'success');
+  } catch (err) {
+    console.error('Error creating label:', err);
+    alert('Failed to create label.');
+  }
+});
+
+// Delete label
+async function deleteLabel(labelId) {
+  try {
+    const { error } = await db.from('labels').delete().eq('id', labelId);
+    
+    if (error) {
+      console.error('Error deleting label:', error);
+      alert('Failed to delete label.');
+      return;
+    }
+    
+    labels = labels.filter(l => l.id !== labelId);
+    selectedLabels = selectedLabels.filter(l => l.id !== labelId);
+    
+    renderLabelsDropdown();
+    renderSelectedLabels();
+    showNotification('Label deleted!', 'success');
+  } catch (err) {
+    console.error('Error deleting label:', err);
+  }
+}
+
+// Reset selected labels when form is reset
+elements.taskForm?.addEventListener('reset', () => {
+  selectedLabels = [];
+  renderSelectedLabels();
+});
+
+// ============================================
 // AI CAPTURE
 // ============================================
 elements.aiExtract.addEventListener("click", () => {
@@ -1567,8 +2284,10 @@ function renderTasks() {
           </select>
         </div>
         <div>-</div>
-        <div>-</div>
-        <div class="danger ${!canEdit() ? "disabled" : ""}" data-task-delete="${task.id}">Remove</div>
+        <div class="task-actions-cell">
+          <button class="task-comments-btn" data-task-comments="${task.id}" title="View Comments">💬</button>
+          <span class="danger ${!canEdit() ? "disabled" : ""}" data-task-delete="${task.id}">Remove</span>
+        </div>
       </div>
     `);
   });
@@ -1600,6 +2319,14 @@ function renderTasks() {
         console.error('Error deleting task:', error);
         alert('Failed to delete task: ' + (error.message || 'Unknown error'));
       }
+    });
+  });
+  
+  // Comments button handlers
+  elements.taskTable.querySelectorAll("[data-task-comments]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const taskId = e.target.dataset.taskComments;
+      openTaskDetail(taskId);
     });
   });
 }
@@ -2356,6 +3083,21 @@ function setupRealtimeSubscriptions() {
       loadAllData();
     })
     .subscribe();
+
+  // Subscribe to notifications changes for current user
+  if (currentUser) {
+    db
+      .channel('notifications-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'notifications',
+        filter: `user_id=eq.${currentUser.id}`
+      }, () => {
+        loadNotifications();
+      })
+      .subscribe();
+  }
 }
 
 // ============================================
@@ -2493,3 +3235,64 @@ async function initialize() {
 
 // Start the app
 initialize();
+
+// ============================================
+// PWA SERVICE WORKER REGISTRATION
+// ============================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('/service-worker.js');
+      console.log('PulsePM: Service Worker registered:', registration.scope);
+      
+      // Check for updates
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version available
+            if (confirm('A new version of PulsePM is available. Reload to update?')) {
+              newWorker.postMessage('skipWaiting');
+              window.location.reload();
+            }
+          }
+        });
+      });
+    } catch (error) {
+      console.log('PulsePM: Service Worker registration failed:', error);
+    }
+  });
+}
+
+// PWA Install Prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  // Show install button in UI (optional)
+  const installBtn = document.createElement('button');
+  installBtn.className = 'pwa-install-btn';
+  installBtn.innerHTML = '📲 Install App';
+  installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('PulsePM: Install prompt outcome:', outcome);
+      deferredPrompt = null;
+      installBtn.remove();
+    }
+  });
+  
+  // Add to topbar
+  const topbarActions = document.querySelector('.topbar-actions');
+  if (topbarActions && !document.querySelector('.pwa-install-btn')) {
+    topbarActions.prepend(installBtn);
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  console.log('PulsePM: App installed successfully!');
+  deferredPrompt = null;
+  document.querySelector('.pwa-install-btn')?.remove();
+});
