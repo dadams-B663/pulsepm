@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PulsePM</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Splash Screen -->
+    <div class="splash-screen hidden" id="splash-screen">
+      <div class="splash-content">
+        <div class="splash-logo">
+          <div class="splash-logo-mark">PP</div>
+          <div class="splash-logo-glow"></div>
+        </div>
+        <h1 class="splash-welcome">Welcome</h1>
+        <h2 class="splash-name" id="splash-user-name"></h2>
+        <div class="splash-loader">
+          <div class="splash-loader-bar"></div>
+        </div>
+        <p class="splash-tagline">Preparing your workspace...</p>
+      </div>
+      <div class="splash-particles" id="splash-particles"></div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="auth-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="auth-modal-title">Sign In</h2>
+          <p id="auth-modal-subtitle">Welcome back to PulsePM</p>
+        </div>
+        <form id="login-form" class="auth-form">
+          <div class="field">
+            <label for="login-email">Email</label>
+            <input id="login-email" type="email" placeholder="you@company.com" required />
+          </div>
+          <div class="field">
+            <label for="login-password">Password</label>
+            <input id="login-password" type="password" placeholder="Enter password" required />
+          </div>
+          <button type="submit" class="primary full-width">Sign In</button>
+          <p class="auth-switch">Don't have an account? <a href="#" id="show-register">Create one</a></p>
+        </form>
+        <form id="register-form" class="auth-form hidden">
+          <div class="field">
+            <label for="register-name">Full Name</label>
+            <input id="register-name" type="text" placeholder="Jordan Lee" required />
+          </div>
+          <div class="field">
+            <label for="register-email">Email</label>
+            <input id="register-email" type="email" placeholder="you@company.com" required />
+          </div>
+          <div class="field">
+            <label for="register-password">Password</label>
+            <input id="register-password" type="password" placeholder="Create password" required minlength="6" />
+          </div>
+          <div class="field">
+            <label for="register-role">Role</label>
+            <select id="register-role" required>
+              <option value="">Select your role</option>
+              <option value="IT Manager">IT Manager</option>
+              <option value="IT Supervisor">IT Supervisor</option>
+              <option value="IT Associate">IT Associate</option>
+              <option value="IT Specialist">IT Specialist</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="register-department">Department</label>
+            <select id="register-department" required>
+              <option value="BCRP">BCRP</option>
+            </select>
+          </div>
+          <div class="field" id="invite-code-field">
+            <label for="register-invite">Invite Code (optional)</label>
+            <input id="register-invite" type="text" placeholder="Enter admin invite code if you have one" />
+          </div>
+          <button type="submit" class="primary full-width">Create Account</button>
+          <p class="auth-switch">Already have an account? <a href="#" id="show-login">Sign in</a></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Invite Modal -->
+    <div class="modal-overlay hidden" id="invite-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Invite New User</h2>
+          <p>Send an invite link via email with custom permissions</p>
+        </div>
+        <form id="invite-form">
+          <div class="field">
+            <label for="invite-email">Recipient Email</label>
+            <input type="email" id="invite-email" placeholder="colleague@company.com" required />
+          </div>
+          <div class="field">
+            <label for="invite-recipient-name">Recipient Name (optional)</label>
+            <input type="text" id="invite-recipient-name" placeholder="John Doe" />
+          </div>
+          <div class="field">
+            <label for="invite-role">Role for Invitee</label>
+            <select id="invite-role" required>
+              <option value="IT Manager">IT Manager</option>
+              <option value="IT Supervisor">IT Supervisor</option>
+              <option value="IT Associate">IT Associate</option>
+              <option value="IT Specialist">IT Specialist</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Permissions</label>
+            <div class="checkbox-group">
+              <label class="checkbox-row">
+                <input type="checkbox" id="invite-perm-admin" />
+                Admin (can manage users & permissions)
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="invite-perm-edit" checked />
+                Edit (can create/edit tasks & todos)
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="invite-perm-see" checked />
+                View (can see all content)
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="invite-perm-share" />
+                Share (can share files externally)
+              </label>
+            </div>
+          </div>
+          <div class="actions">
+            <button type="submit" class="primary">Generate & Send Invite</button>
+            <button type="button" class="ghost" id="close-invite-modal">Cancel</button>
+          </div>
+        </form>
+        <div id="invite-result" class="hidden">
+          <div class="invite-success">
+            <div class="success-icon">✉️</div>
+            <h3>Invite Created!</h3>
+            <p class="muted">An email has been prepared for <strong id="invite-sent-to"></strong></p>
+          </div>
+          <div class="invite-code-display">
+            <label>Invite Code</label>
+            <div class="code-box" id="generated-invite-code"></div>
+          </div>
+          <div class="invite-link-display">
+            <label>Invite Link</label>
+            <div class="link-box" id="generated-invite-link"></div>
+          </div>
+          <div class="invite-actions">
+            <button class="primary" id="send-email-btn">📧 Open Email Client</button>
+            <button class="ghost" id="copy-invite-link">📋 Copy Link</button>
+            <button class="ghost" id="copy-invite-code">📝 Copy Code</button>
+          </div>
+          <button class="ghost full-width" id="done-invite" style="margin-top: 16px;">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">PP</div>
+          <div>
+            <div class="brand-name">PulsePM</div>
+            <div class="brand-subtitle">Teams + GitHub vibes</div>
+          </div>
+        </div>
+        <div class="user-info" id="user-info">
+          <div class="user-avatar" id="user-avatar">?</div>
+          <div class="user-details">
+            <div class="user-name" id="user-name">Not signed in</div>
+            <div class="user-role" id="user-role"></div>
+          </div>
+          <button class="icon-btn" id="logout-btn" title="Sign out">Exit</button>
+        </div>
+        <nav class="nav">
+          <button class="nav-link" data-section="dashboard">Dashboard</button>
+          <button class="nav-link" data-section="tasks">Tasks</button>
+          <button class="nav-link" data-section="todos">Todos</button>
+          <button class="nav-link" data-section="files">Files</button>
+          <button class="nav-link" data-section="ai">AI Capture</button>
+          <button class="nav-link" data-section="teams">Teams & Permissions</button>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="status-pill">Connected to Teams</div>
+          <div class="status-pill accent">Sync: Local First</div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>Product Management for IT Teams</h1>
+            <p>Track work, prioritize, and align everyone fast.</p>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost" id="seed-demo">Reset Demo Data</button>
+            <button class="primary" data-section="tasks">Create Task</button>
+          </div>
+        </header>
+
+        <section class="panel" id="dashboard">
+          <div class="dashboard-header">
+            <div class="dashboard-welcome">
+              <h2>Welcome back, <span id="dashboard-user-name">User</span></h2>
+              <p>Here's what's happening with your team today.</p>
+            </div>
+            <div class="dashboard-date">
+              <div class="date-display" id="current-date"></div>
+              <div class="time-display" id="current-time"></div>
+            </div>
+          </div>
+
+          <!-- Stats Cards -->
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-icon tasks-icon">📋</div>
+              <div class="stat-content">
+                <div class="stat-value" id="metric-tasks">0</div>
+                <div class="stat-label">Open Tasks</div>
+                <div class="stat-trend">Priority-driven backlog</div>
+              </div>
+            </div>
+            <div class="stat-card accent">
+              <div class="stat-icon progress-icon">📊</div>
+              <div class="stat-content">
+                <div class="stat-value" id="metric-progress">0%</div>
+                <div class="stat-label">Todo Progress</div>
+                <div class="stat-trend">Across all team todos</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon files-icon">📁</div>
+              <div class="stat-content">
+                <div class="stat-value" id="metric-files">0</div>
+                <div class="stat-label">Shared Files</div>
+                <div class="stat-trend">Docs, sheets, decks</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon team-icon">👥</div>
+              <div class="stat-content">
+                <div class="stat-value" id="metric-team">0</div>
+                <div class="stat-label">Team Members</div>
+                <div class="stat-trend">Active in workspace</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Dashboard Grid -->
+          <div class="dashboard-grid">
+            <!-- Priority Tasks -->
+            <div class="dashboard-card priority-card">
+              <div class="dashboard-card-header">
+                <h3>🔥 Highest Priority</h3>
+                <button class="ghost small-btn" data-section="tasks">View All</button>
+              </div>
+              <div class="dashboard-card-body">
+                <div id="priority-list" class="priority-list"></div>
+              </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="dashboard-card activity-card">
+              <div class="dashboard-card-header">
+                <h3>⚡ Recent Activity</h3>
+                <span class="activity-badge">Live</span>
+              </div>
+              <div class="dashboard-card-body">
+                <div id="activity-list" class="activity-list"></div>
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="dashboard-card actions-card">
+              <div class="dashboard-card-header">
+                <h3>🚀 Quick Actions</h3>
+              </div>
+              <div class="dashboard-card-body">
+                <div class="quick-actions">
+                  <button class="quick-action-btn" data-section="tasks">
+                    <span class="qa-icon">➕</span>
+                    <span class="qa-label">New Task</span>
+                  </button>
+                  <button class="quick-action-btn" data-section="todos">
+                    <span class="qa-icon">✓</span>
+                    <span class="qa-label">Add Todo</span>
+                  </button>
+                  <button class="quick-action-btn" data-section="files">
+                    <span class="qa-icon">📤</span>
+                    <span class="qa-label">Upload File</span>
+                  </button>
+                  <button class="quick-action-btn" data-section="ai">
+                    <span class="qa-icon">🤖</span>
+                    <span class="qa-label">AI Capture</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Team Overview -->
+            <div class="dashboard-card team-card">
+              <div class="dashboard-card-header">
+                <h3>👥 Team Overview</h3>
+                <button class="ghost small-btn" data-section="teams">Manage</button>
+              </div>
+              <div class="dashboard-card-body">
+                <div id="team-overview" class="team-overview"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="tasks">
+          <div class="panel-header">
+            <h2>Tasks</h2>
+            <p>Quick creation, prioritization, and ownership.</p>
+          </div>
+          <form class="card form-grid" id="task-form">
+            <div class="field">
+              <label for="task-title">Task name</label>
+              <input id="task-title" type="text" placeholder="Upgrade VPN gateway firmware" required />
+            </div>
+            <div class="field">
+              <label for="task-priority">Priority</label>
+              <select id="task-priority">
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="task-status">Status</label>
+              <select id="task-status">
+                <option value="Not started">Not started</option>
+                <option value="In progress" selected>In progress</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Done">Done</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="task-assignee">Assignee</label>
+              <select id="task-assignee">
+                <option value="">Unassigned</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="task-team">Team</label>
+              <input id="task-team" type="text" placeholder="Infrastructure" />
+            </div>
+            <div class="field">
+              <label for="task-due">Due date</label>
+              <div class="date-input-wrapper">
+                <input id="task-due" type="text" placeholder="Select date..." readonly class="date-picker-input" />
+                <input id="task-due-hidden" type="hidden" />
+                <span class="date-icon">📅</span>
+              </div>
+            </div>
+            <div class="field span-2">
+              <label for="task-notes">Notes</label>
+              <textarea id="task-notes" rows="2" placeholder="Include change window and rollback steps."></textarea>
+            </div>
+            <div class="actions">
+              <button type="submit" class="primary">Add Task</button>
+              <button type="button" class="ghost" id="task-clear">Clear</button>
+            </div>
+          </form>
+          <div class="card table-card">
+            <div class="table-header">
+              <h3>Task Backlog</h3>
+              <div class="table-actions">
+                <select id="task-filter">
+                  <option value="All">All priorities</option>
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+                <select id="task-sort">
+                  <option value="priority">Sort by priority</option>
+                  <option value="due">Sort by due date</option>
+                  <option value="status">Sort by status</option>
+                </select>
+              </div>
+            </div>
+            <div class="table" id="task-table"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="todos">
+          <div class="panel-header">
+            <div>
+              <h2>Team Todos</h2>
+              <p>Track individual tasks, claim unassigned work, and update progress.</p>
+            </div>
+            <button class="primary" id="add-todo-btn">+ Add Todo</button>
+          </div>
+          
+          <!-- Add Todo Form (hidden by default) -->
+          <form class="card form-grid hidden" id="todo-form">
+            <div class="field">
+              <label for="todo-title">Todo Title</label>
+              <input id="todo-title" type="text" placeholder="Patch laptop fleet for CVE-2026-1042" required />
+            </div>
+            <div class="field">
+              <label for="todo-assign">Assign To</label>
+              <select id="todo-assign">
+                <option value="">Unassigned (anyone can claim)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="todo-status">Status</label>
+              <select id="todo-status">
+                <option value="Not started">Not started</option>
+                <option value="In progress" selected>In progress</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Done">Done</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="todo-progress">Initial Progress</label>
+              <input id="todo-progress" type="range" min="0" max="100" value="0" />
+            </div>
+            <div class="field">
+              <label class="checkbox-row">
+                <input type="checkbox" id="todo-locked" />
+                Lock assignment (only admin can reassign)
+              </label>
+            </div>
+            <div class="actions">
+              <button type="submit" class="primary">Create Todo</button>
+              <button type="button" class="ghost" id="todo-cancel">Cancel</button>
+            </div>
+          </form>
+
+          <div class="todos-layout">
+            <!-- Unassigned Tasks Box -->
+            <div class="unassigned-box" id="unassigned-box">
+              <h3>Unassigned Tasks</h3>
+              <p class="muted">Grab a task to start working on it</p>
+              <div class="unassigned-todos" id="unassigned-todos"></div>
+            </div>
+
+            <!-- User Columns -->
+            <div class="user-todos-grid" id="user-todos-grid"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="files">
+          <div class="panel-header">
+            <div>
+              <h2>Shared Files</h2>
+              <p>Store, preview, and download docs, spreadsheets, and project artifacts.</p>
+            </div>
+            <button class="primary" id="add-file-btn">+ Upload File</button>
+          </div>
+          
+          <!-- File Filter Bar -->
+          <div class="file-filter-bar" style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center;">
+            <input type="text" id="file-search" placeholder="Search files..." style="flex: 1; max-width: 300px;" />
+            <select id="file-type-filter">
+              <option value="all">All Types</option>
+              <option value="document">Documents</option>
+              <option value="spreadsheet">Spreadsheets</option>
+              <option value="link">Links</option>
+              <option value="image">Images</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          
+          <!-- Upload Form (hidden by default) -->
+          <form class="card hidden" id="file-form" style="margin-bottom: 24px;">
+            <div class="form-grid">
+              <div class="field span-3">
+                <label for="file-upload">Select Files</label>
+                <input id="file-upload" type="file" multiple accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.txt,.png,.jpg,.jpeg,.gif,.webp" />
+              </div>
+              <div class="field span-3">
+                <label for="file-link">Or paste a shared link</label>
+                <input id="file-link" type="url" placeholder="https://sharepoint.com/... or https://drive.google.com/..." />
+              </div>
+              <div class="field span-3">
+                <label for="file-notes">Description</label>
+                <textarea id="file-notes" rows="2" placeholder="CAB summary, deployment plan, or SOP documentation..."></textarea>
+              </div>
+              <div class="actions">
+                <button type="submit" class="primary">Upload Files</button>
+                <button type="button" class="ghost" id="file-cancel">Cancel</button>
+              </div>
+            </div>
+          </form>
+
+          <!-- Files Grid -->
+          <div class="files-grid" id="file-list"></div>
+        </section>
+
+        <!-- Edit Todo Modal -->
+    <div class="modal-overlay hidden" id="edit-todo-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Edit Task</h2>
+          <p>Update task details</p>
+        </div>
+        <form id="edit-todo-form">
+          <input type="hidden" id="edit-todo-id" />
+          <div class="field">
+            <label for="edit-todo-title">Title</label>
+            <input id="edit-todo-title" type="text" required />
+          </div>
+          <div class="field">
+            <label for="edit-todo-assign">Assign To</label>
+            <select id="edit-todo-assign">
+              <option value="">Unassigned</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="edit-todo-priority">Priority</label>
+            <select id="edit-todo-priority">
+              <option value="">None</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="edit-todo-status">Status</label>
+            <select id="edit-todo-status">
+              <option value="Not started">Not started</option>
+              <option value="In progress">In progress</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Done">Done</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="edit-todo-due">Due Date</label>
+            <div class="date-input-wrapper">
+              <input id="edit-todo-due" type="text" placeholder="Select date..." readonly class="date-picker-input" />
+              <input id="edit-todo-due-hidden" type="hidden" />
+              <span class="date-icon">📅</span>
+            </div>
+          </div>
+          <div class="field">
+            <label class="checkbox-row">
+              <input type="checkbox" id="edit-todo-locked" />
+              Lock assignment (only admin can reassign)
+            </label>
+          </div>
+          <div class="actions">
+            <button type="submit" class="primary">Save Changes</button>
+            <button type="button" class="ghost" id="cancel-edit-todo">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Permissions Modal -->
+    <div class="modal-overlay hidden" id="edit-permissions-modal">
+      <div class="modal" style="max-width: 450px;">
+        <div class="modal-header">
+          <h2>Edit User Permissions</h2>
+          <p id="edit-perm-user-name">User Name</p>
+        </div>
+        <form id="edit-permissions-form">
+          <input type="hidden" id="edit-perm-user-id" />
+          <div class="field">
+            <label for="edit-perm-role">Role</label>
+            <select id="edit-perm-role">
+              <option value="IT Manager">IT Manager</option>
+              <option value="IT Supervisor">IT Supervisor</option>
+              <option value="IT Associate">IT Associate</option>
+              <option value="IT Specialist">IT Specialist</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Permissions</label>
+            <div class="checkbox-group">
+              <label class="checkbox-row">
+                <input type="checkbox" id="edit-perm-admin" />
+                <strong>Admin</strong> - Full control: manage users, roles, and permissions
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="edit-perm-edit" />
+                <strong>Edit</strong> - Create and modify tasks, todos, and files
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="edit-perm-see" />
+                <strong>View</strong> - Read-only access to all content
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="edit-perm-share" />
+                <strong>Share</strong> - Can share files and content externally
+              </label>
+            </div>
+          </div>
+          <div class="actions" style="margin-top: 24px;">
+            <button type="submit" class="primary">Save Permissions</button>
+            <button type="button" class="ghost" id="cancel-edit-perm">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay hidden" id="delete-confirm-modal">
+      <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+          <h2>Delete Task</h2>
+          <p>Are you sure you want to delete this task?</p>
+        </div>
+        <div class="delete-confirm-content">
+          <div class="delete-item-preview" id="delete-item-preview"></div>
+          <p class="muted" style="margin-top: 16px;">This action cannot be undone.</p>
+        </div>
+        <div class="actions" style="margin-top: 24px;">
+          <button class="danger-btn" id="confirm-delete">Delete Task</button>
+          <button class="ghost" id="cancel-delete">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit File Modal -->
+    <div class="modal-overlay hidden" id="edit-file-modal">
+      <div class="modal" style="max-width: 450px;">
+        <div class="modal-header">
+          <h2>Edit File</h2>
+          <p>Update file details</p>
+        </div>
+        <form id="edit-file-form">
+          <input type="hidden" id="edit-file-id" />
+          <div class="field">
+            <label for="edit-file-name">File Name</label>
+            <input type="text" id="edit-file-name" required />
+          </div>
+          <div class="field">
+            <label for="edit-file-link">Link (optional)</label>
+            <input type="url" id="edit-file-link" placeholder="https://..." />
+          </div>
+          <div class="actions" style="margin-top: 24px;">
+            <button type="submit" class="primary">Save Changes</button>
+            <button type="button" class="ghost" id="cancel-edit-file">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Delete File Confirmation Modal -->
+    <div class="modal-overlay hidden" id="delete-file-modal">
+      <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+          <h2>Delete File</h2>
+          <p>Are you sure you want to delete this file?</p>
+        </div>
+        <div class="delete-confirm-content">
+          <div class="delete-item-preview" id="delete-file-preview"></div>
+          <p class="muted" style="margin-top: 16px;">This action cannot be undone.</p>
+        </div>
+        <div class="actions" style="margin-top: 24px;">
+          <button class="danger-btn" id="confirm-delete-file">Delete File</button>
+          <button class="ghost" id="cancel-delete-file">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar Modal -->
+    <div class="calendar-overlay hidden" id="calendar-modal">
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <button class="calendar-nav" id="cal-prev">‹</button>
+          <div class="calendar-title">
+            <span id="cal-month-year">January 2026</span>
+          </div>
+          <button class="calendar-nav" id="cal-next">›</button>
+        </div>
+        <div class="calendar-weekdays">
+          <div>Sun</div>
+          <div>Mon</div>
+          <div>Tue</div>
+          <div>Wed</div>
+          <div>Thu</div>
+          <div>Fri</div>
+          <div>Sat</div>
+        </div>
+        <div class="calendar-days" id="cal-days"></div>
+        <div class="calendar-footer">
+          <button class="ghost small-btn" id="cal-today">Today</button>
+          <button class="ghost small-btn" id="cal-clear">Clear</button>
+          <button class="primary small-btn" id="cal-close">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Preview Modal -->
+        <div class="modal-overlay hidden" id="file-preview-modal">
+          <div class="modal preview-modal">
+            <div class="modal-header">
+              <h2 id="preview-file-name">File Preview</h2>
+              <p id="preview-file-type">Document</p>
+            </div>
+            <div class="preview-content" id="preview-content">
+              <!-- Preview content injected here -->
+            </div>
+            <div class="actions" style="justify-content: flex-end;">
+              <button class="ghost" id="close-preview">Close</button>
+              <a class="primary" id="download-file" href="#" download>Download File</a>
+            </div>
+          </div>
+        </div>
+
+        <section class="panel ai-section" id="ai">
+          <div class="panel-header">
+            <div>
+              <h2>AI Capture from Teams</h2>
+              <p>Intelligent extraction of action items from your Teams conversations.</p>
+            </div>
+          </div>
+          
+          <div class="ai-container">
+            <!-- Input Panel -->
+            <div class="ai-panel">
+              <div class="scan-line"></div>
+              <div class="ai-panel-header">
+                <div class="ai-status"></div>
+                <h3>Input Terminal</h3>
+              </div>
+              <div class="ai-panel-body">
+                <div class="ai-terminal">
+                  <div class="terminal-header">
+                    <div class="terminal-dot red"></div>
+                    <div class="terminal-dot yellow"></div>
+                    <div class="terminal-dot green"></div>
+                    <span class="terminal-title">teams_capture.exe</span>
+                  </div>
+                  <textarea id="ai-input" class="ai-textarea" placeholder="// Paste Teams chat or channel content here...
+// The AI will scan for:
+//   - Action items and todos
+//   - Urgent requests (ASAP, urgent, critical)
+//   - Follow-up tasks
+//   - Blocked items
+//   - Due dates and deadlines"></textarea>
+                </div>
+                <div class="actions" style="margin-top: 16px;">
+                  <button class="primary" id="ai-extract">Scan & Extract</button>
+                  <button class="ghost" id="ai-clear">Clear Terminal</button>
+                </div>
+                
+                <!-- Examples Slideshow -->
+                <div class="ai-examples">
+                  <div class="example-label">Example Inputs & Outputs</div>
+                  <div class="example-slider">
+                    <div class="example-slides" id="example-slides">
+                      <div class="example-slide">
+                        <div class="example-input">
+                          <strong>John:</strong> @team We need to update the firewall rules ASAP - security audit is next week<br>
+                          <strong>Sarah:</strong> I can handle that, but I'm blocked on the network diagram
+                        </div>
+                        <div class="example-output">
+                          <div class="example-task">Update firewall rules - ASAP (Critical)</div>
+                          <div class="example-task">Blocked: Network diagram needed</div>
+                        </div>
+                      </div>
+                      <div class="example-slide">
+                        <div class="example-input">
+                          <strong>Mike:</strong> Action items from today's standup:<br>
+                          - Deploy hotfix to production by EOD<br>
+                          - Review PR #234 (urgent)<br>
+                          - Schedule CAB meeting for Thursday
+                        </div>
+                        <div class="example-output">
+                          <div class="example-task">Deploy hotfix to production (High)</div>
+                          <div class="example-task">Review PR #234 - urgent (Critical)</div>
+                          <div class="example-task">Schedule CAB meeting (Medium)</div>
+                        </div>
+                      </div>
+                      <div class="example-slide">
+                        <div class="example-input">
+                          <strong>Lisa:</strong> FYI - the SSL cert expires in 3 days, this is critical<br>
+                          <strong>Tom:</strong> I'll add it to my todo list and follow up with the vendor
+                        </div>
+                        <div class="example-output">
+                          <div class="example-task">SSL cert renewal - expires soon (Critical)</div>
+                          <div class="example-task">Follow up with vendor (Medium)</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="slider-nav">
+                      <div class="slider-dot active" data-slide="0"></div>
+                      <div class="slider-dot" data-slide="1"></div>
+                      <div class="slider-dot" data-slide="2"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="ai-panel ai-results-panel">
+              <div class="scan-line"></div>
+              <div class="ai-panel-header">
+                <div class="ai-status"></div>
+                <h3>Extracted Items</h3>
+              </div>
+              <div class="ai-panel-body">
+                <div class="ai-results-list" id="ai-results">
+                  <div class="muted" style="text-align: center; padding: 40px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;">⚡</div>
+                    <div>Paste Teams content and click "Scan & Extract"</div>
+                    <div style="margin-top: 8px; font-size: 12px;">AI will identify action items, priorities, and blockers</div>
+                  </div>
+                </div>
+              </div>
+              <div class="ai-toolbar">
+                <label for="ai-target">Import to:</label>
+                <select id="ai-target">
+                  <option value="both">Both Tasks & Todos</option>
+                  <option value="tasks">Tasks Only</option>
+                  <option value="todos">Todos Only</option>
+                </select>
+                <button class="primary" id="ai-import" style="margin-left: auto;">Import Selected</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="teams">
+          <div class="panel-header">
+            <div>
+              <h2>Teams & Permissions</h2>
+              <p>Admins decide who can edit, see, and share across the app.</p>
+            </div>
+          </div>
+
+          <!-- Invite User Card - Admin Only -->
+          <div class="invite-user-card" id="invite-user-card">
+            <div class="invite-card-content">
+              <div class="invite-card-icon">👥</div>
+              <div class="invite-card-text">
+                <h3>Invite Team Members</h3>
+                <p>Generate invite codes with custom permissions to add new users to your workspace.</p>
+              </div>
+              <button class="invite-btn" id="invite-user-btn">
+                <span class="invite-btn-icon">+</span>
+                <span>Invite User</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-2">
+            <div class="card">
+              <div class="card-header-row">
+                <h3>🎟️ Active Invites</h3>
+                <span class="invite-count" id="invite-count">0</span>
+              </div>
+              <p class="muted">Pending invite codes created by admins.</p>
+              <div id="invite-list" class="list"></div>
+            </div>
+            <div class="card">
+              <h3>🔐 Permission Levels</h3>
+              <p class="muted">What each permission allows.</p>
+              <div class="permission-info">
+                <div class="perm-row"><span class="pill critical">Admin</span> Full control: manage users, roles, and all content</div>
+                <div class="perm-row"><span class="pill high">Edit</span> Create and modify tasks, todos, and files</div>
+                <div class="perm-row"><span class="pill medium">View</span> Read-only access to all content</div>
+                <div class="perm-row"><span class="pill low">Share</span> Can share files and content externally</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="table-header">
+              <h3>👤 Team Members</h3>
+              <span class="muted" id="member-count">0 members</span>
+            </div>
+            <div class="table" id="member-list"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js?v=20260130c"></script>
+    <script src="app.js?v=20260130c"></script>
+  </body>
+</html>
