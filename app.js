@@ -3296,3 +3296,30 @@ window.addEventListener('appinstalled', () => {
   deferredPrompt = null;
   document.querySelector('.pwa-install-btn')?.remove();
 });
+
+// ============================================
+// MOBILE MENU TOGGLE
+// ============================================
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const sidebar = document.getElementById('sidebar');
+
+mobileMenuToggle?.addEventListener('click', () => {
+  mobileMenuToggle.classList.toggle('active');
+  sidebar?.classList.toggle('nav-open');
+});
+
+// Close mobile menu when clicking a nav link
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', () => {
+    mobileMenuToggle?.classList.remove('active');
+    sidebar?.classList.remove('nav-open');
+  });
+});
+
+// Close mobile menu on resize to desktop
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 904) {
+    mobileMenuToggle?.classList.remove('active');
+    sidebar?.classList.remove('nav-open');
+  }
+});

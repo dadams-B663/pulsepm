@@ -1,4 +1,5 @@
 :root {
+  /* Colors */
   --black: #0a0a0a;
   --black-light: #1a1a1a;
   --black-medium: #2a2a2a;
@@ -20,6 +21,23 @@
   --success: #22c55e;
   --error: #ef4444;
   --warning: #f97316;
+  
+  /* Google Material Design Breakpoints */
+  /* xs: 0-599px (mobile phones portrait) */
+  /* sm: 600-904px (tablets portrait, phones landscape) */
+  /* md: 905-1239px (tablets landscape) */
+  /* lg: 1240-1439px (laptops) */
+  /* xl: 1440px+ (large desktops) */
+  
+  /* Spacing scale */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Touch target minimum */
+  --touch-target-min: 48px;
 }
 
 *,
@@ -2702,10 +2720,64 @@ button {
   color: var(--yellow);
 }
 
-/* ================================
-   Responsive Design
-   ================================ */
-@media (max-width: 1200px) {
+/* ============================================
+   RESPONSIVE DESIGN - Google Material Breakpoints
+   xs: 0-599px | sm: 600-904px | md: 905-1239px | lg: 1240-1439px | xl: 1440px+
+   ============================================ */
+
+/* Extra Large (xl): 1440px+ - Large desktops */
+@media (min-width: 1440px) {
+  .main {
+    padding: 32px 48px;
+  }
+  
+  .stats-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .files-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 2fr 1fr;
+  }
+  
+  .form-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Large (lg): 1240-1439px - Laptops */
+@media (min-width: 1240px) and (max-width: 1439px) {
+  .stats-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .files-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Medium (md): 905-1239px - Tablets landscape */
+@media (min-width: 905px) and (max-width: 1239px) {
+  .sidebar {
+    width: 200px;
+    padding: 16px;
+  }
+  
+  .brand-text {
+    font-size: 18px;
+  }
+  
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .files-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
   .ai-container {
     grid-template-columns: 1fr;
   }
@@ -2713,76 +2785,414 @@ button {
   .user-todos-grid {
     grid-template-columns: 1fr;
   }
+  
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-@media (max-width: 900px) {
+/* Small (sm): 600-904px - Tablets portrait, phones landscape */
+@media (min-width: 600px) and (max-width: 904px) {
   .app-shell {
     grid-template-columns: 1fr;
   }
-
+  
   .sidebar {
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 100;
     flex-direction: row;
     flex-wrap: wrap;
-    padding: 16px;
-    gap: 12px;
+    padding: 12px 16px;
+    gap: 8px;
+    border-right: none;
+    border-bottom: 1px solid var(--gray-800);
   }
-
+  
   .brand {
     border-bottom: none;
     padding-bottom: 0;
+    margin-bottom: 0;
   }
-
+  
   .nav {
     flex-direction: row;
     flex-wrap: wrap;
-    flex: auto;
+    flex: 1;
+    gap: 4px;
   }
-
+  
+  .nav-link {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: var(--touch-target-min);
+    display: flex;
+    align-items: center;
+  }
+  
   .sidebar-footer,
   .user-info {
     display: none;
   }
-
+  
   .main {
-    padding: 24px 20px;
+    padding: 20px 16px;
   }
-
-  .grid-2,
-  .grid-3,
-  .grid-4,
-  .form-grid {
+  
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .files-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .ai-container {
     grid-template-columns: 1fr;
   }
+  
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .span-2 {
+    grid-column: span 2;
+  }
+  
+  .span-3 {
+    grid-column: span 2;
+  }
+  
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  
+  .modal {
+    width: 90%;
+    max-width: 500px;
+  }
+}
 
+/* Extra Small (xs): 0-599px - Mobile phones portrait */
+@media (max-width: 599px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+  
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-direction: column;
+    padding: 12px;
+    gap: 8px;
+    border-right: none;
+    border-bottom: 1px solid var(--gray-800);
+  }
+  
+  .brand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+  
+  .nav {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 4px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .nav-link {
+    padding: 10px 14px;
+    font-size: 11px;
+    white-space: nowrap;
+    min-height: var(--touch-target-min);
+    flex-shrink: 0;
+  }
+  
+  .sidebar-footer,
+  .user-info {
+    display: none;
+  }
+  
+  .main {
+    padding: 16px 12px;
+  }
+  
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+  }
+  
+  .topbar h1 {
+    font-size: 18px;
+  }
+  
+  .topbar p {
+    font-size: 12px;
+  }
+  
+  .topbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .topbar-actions button {
+    flex: 1;
+    min-width: 120px;
+    min-height: var(--touch-target-min);
+  }
+  
+  /* Dashboard */
+  .stats-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .stat-card {
+    padding: 16px;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Forms */
+  .form-grid,
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+  
   .actions,
   .span-2,
   .span-3 {
     grid-column: span 1;
   }
-
+  
+  .card {
+    padding: 16px;
+  }
+  
+  /* Tables - Convert to card view */
   .table-row {
     grid-template-columns: 1fr;
     gap: 8px;
+    padding: 16px;
+    background: var(--gray-800);
+    border-radius: 8px;
+    margin-bottom: 8px;
   }
-
+  
   .table-row.header {
     display: none;
   }
-
+  
+  .table-row > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .table-row > div::before {
+    font-size: 11px;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Member rows */
   .member-row {
     grid-template-columns: 1fr;
     gap: 10px;
+    padding: 16px;
+    background: var(--gray-800);
+    border-radius: 8px;
+    margin-bottom: 8px;
   }
-
+  
   .member-row.header {
     display: none;
   }
-
+  
+  /* Files */
   .files-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .file-card {
+    flex-direction: row;
+    padding: 12px;
+  }
+  
+  .file-preview {
+    width: 48px;
+    height: 48px;
+  }
+  
+  /* AI Container */
+  .ai-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .ai-panel {
+    min-height: auto;
+  }
+  
+  .ai-textarea {
+    min-height: 120px;
+  }
+  
+  /* Modals - Full screen on mobile */
+  .modal-overlay {
+    padding: 0;
+  }
+  
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    border-radius: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  
+  .modal-header {
+    position: sticky;
+    top: 0;
+    background: var(--gray-900);
+    z-index: 10;
+    padding: 20px;
+    border-bottom: 1px solid var(--gray-800);
+  }
+  
+  /* Buttons - Touch friendly */
+  button,
+  .btn,
+  input[type="submit"] {
+    min-height: var(--touch-target-min);
+  }
+  
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS zoom */
+  }
+  
+  /* Notification dropdown */
+  .notification-dropdown {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 70vh;
+    border-radius: 16px 16px 0 0;
+    margin-top: 0;
+  }
+  
+  /* Labels dropdown */
+  .labels-dropdown {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 60vh;
+    border-radius: 16px 16px 0 0;
+    z-index: 1000;
+  }
+  
+  /* Task detail modal */
+  .task-detail-modal {
+    max-width: 100%;
+  }
+  
+  /* Panel header */
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .panel-header button {
+    width: 100%;
+  }
+  
+  /* Calendar modal */
+  #calendar-modal .modal {
+    padding: 16px;
+  }
+  
+  .cal-grid {
+    gap: 4px;
+  }
+  
+  .cal-day {
+    min-height: 40px;
+    font-size: 13px;
+  }
+  
+  /* Quick actions */
+  .quick-action-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Todo items */
+  .unassigned-todo {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .todo-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+  
+  /* Invite card */
+  .invite-user-card {
+    padding: 20px;
+  }
+  
+  /* Auth modal - special case, keep centered */
+  #auth-modal .modal {
+    min-height: auto;
+    max-height: 90vh;
+    margin: 20px;
+    width: calc(100% - 40px);
+    border-radius: 16px;
   }
 }
 
@@ -3468,4 +3878,217 @@ button {
 
 .pwa-install-btn:active {
   transform: translateY(0);
+}
+
+/* ============================================
+   MOBILE MENU TOGGLE
+   ============================================ */
+.brand-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.mobile-menu-toggle:hover {
+  background: var(--gray-800);
+}
+
+.hamburger-line {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--gray-300);
+  border-radius: 1px;
+  transition: all 0.3s ease;
+  margin: 2px 0;
+}
+
+.mobile-menu-toggle.active .hamburger-line:nth-child(1) {
+  transform: rotate(45deg) translate(4px, 4px);
+}
+
+.mobile-menu-toggle.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.mobile-menu-toggle.active .hamburger-line:nth-child(3) {
+  transform: rotate(-45deg) translate(4px, -4px);
+}
+
+/* Show hamburger on mobile */
+@media (max-width: 904px) {
+  .mobile-menu-toggle {
+    display: flex;
+  }
+  
+  .brand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+  
+  .nav {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+  
+  .sidebar.nav-open .nav {
+    max-height: 500px;
+  }
+  
+  /* Alternative: horizontal scroll on very small screens */
+  @media (max-width: 599px) {
+    .nav {
+      max-height: none;
+      overflow-x: auto;
+    }
+  }
+}
+
+/* ============================================
+   TOUCH-FRIENDLY IMPROVEMENTS
+   ============================================ */
+
+/* Ensure all interactive elements have minimum touch target */
+@media (pointer: coarse) {
+  /* Coarse pointer = touch device */
+  
+  button,
+  .btn,
+  a.btn,
+  input[type="submit"],
+  input[type="button"],
+  .nav-link,
+  .file-btn,
+  .claim-btn,
+  .todo-action-btn,
+  .task-comments-btn,
+  .color-option,
+  .slider-dot {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Larger checkboxes and radio buttons */
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+  }
+  
+  /* Better spacing for list items */
+  .notification-item,
+  .comment-item,
+  .label-option,
+  .mention-item,
+  .member-row,
+  .table-row {
+    padding: 14px 16px;
+  }
+  
+  /* Larger dropdown items */
+  select option {
+    padding: 12px;
+  }
+  
+  /* Better tap targets for pills and badges */
+  .pill,
+  .tag,
+  .label-pill {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  
+  /* Increase spacing between interactive elements */
+  .actions {
+    gap: 12px;
+  }
+  
+  .topbar-actions {
+    gap: 10px;
+  }
+  
+  /* Better touch scrolling */
+  .notification-list,
+  .comments-list,
+  .labels-list,
+  .mention-dropdown {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Remove hover effects on touch (they stick) */
+  .nav-link:hover,
+  .btn:hover,
+  button:hover {
+    transition: none;
+  }
+}
+
+/* Active states for touch feedback */
+@media (pointer: coarse) {
+  button:active,
+  .btn:active,
+  .nav-link:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  
+  .notification-item:active,
+  .comment-item:active,
+  .label-option:active,
+  .mention-item:active {
+    background: var(--gray-700);
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  .sidebar {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  
+  .main {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  
+  .modal {
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  
+  @media (max-width: 599px) {
+    .notification-dropdown,
+    .labels-dropdown {
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+  }
+}
+
+/* Disable text selection on buttons for better touch UX */
+button,
+.btn,
+.nav-link {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
